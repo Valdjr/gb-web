@@ -17,7 +17,9 @@ import { useAuth } from '../../hooks/auth';
 interface ProfileFormData {
   name: string;
   email: string;
+  old_password: string;
   password: string;
+  password_confirmation: string;
 }
 
 const Profile: React.FC = () => {
@@ -36,21 +38,49 @@ const Profile: React.FC = () => {
             .string()
             .required('E-mail obrigatório')
             .email('Digite um e-mail válido'),
-          password: yup.string().min(6, 'No mínimo 6 dígitos'),
+          old_password: yup.string(),
+          password: yup.string().when('old_password', {
+            is: val => !!val.length,
+            then: yup.string().required('Campo obrigatório'),
+            otherwise: yup.string(),
+          }),
+          password_confirmation: yup
+            .string()
+            .when('old_password', {
+              is: val => !!val.length,
+              then: yup.string().required('Campo obrigatório'),
+              otherwise: yup.string(),
+            })
+            .oneOf([yup.ref('password'), undefined], 'Confirmação incorreta'),
         });
 
         await schema.validate(data, {
           abortEarly: false,
         });
 
-        await api.post('/users', data);
+        const formData = {
+          name: data.name,
+          email: data.email,
+          ...(data.old_password
+            ? {
+                old_password: data.old_password,
+                password: data.password,
+                password_confirmation: data.password_confirmation,
+              }
+            : {}),
+        };
 
-        history.push('/');
+        const response = await api.put('/profile', formData);
+
+        updatedUser(response.data);
+
+        history.push('/dashboard');
 
         addToast({
           type: 'success',
-          title: 'Cadastro realizado',
-          description: 'Você já pode fazer seu logon no GoBarber!',
+          title: 'Perfil atualizado',
+          description:
+            'Suas informações de perfil foram atualizadas com sucesso.',
         });
       } catch (err) {
         if (err instanceof yup.ValidationError) {
@@ -61,8 +91,9 @@ const Profile: React.FC = () => {
 
         addToast({
           type: 'error',
-          title: 'Erro no cadastro',
-          description: 'Ocorreu um erro ao fazer o cadastro, tente novamente.',
+          title: 'Erro na atualização',
+          description:
+            'Ocorreu um erro ao atualizar o perfil, tente novamente.',
         });
       }
     },
