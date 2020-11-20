@@ -29,6 +29,7 @@
       "prettier/prettier": "error",
       "react/jsx-props-no-spreading": "off",
       "react/prop-types": "off",
+      "import/no-duplicates": "off",
       "no-use-before-define": "off",
       "react-hooks/exhaustive-deps": "warn",
       "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
